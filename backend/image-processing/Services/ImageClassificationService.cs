@@ -1,4 +1,7 @@
+using System;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using Tensorflow;
 using Tensorflow.NumPy;
 using static Tensorflow.Binding;
@@ -18,27 +21,30 @@ namespace ImageClassifierAPI.Services
         {
             try
             {
-                // Load the SavedModel
-                var model = tf.saved_model.load(_modelPath);
+                // Load the model into a graph
+                var graph = new Graph().as_default();
+                graph.Import(_modelPath); // Import the saved model graph
 
-                // Preprocess the image (resize and normalize)
-                Tensor inputTensor = PreprocessImage(imageBytes);
-
-                // Retrieve the serving_default function
-                var predictFunction = model.signatures["serving_default"];
-
-                // Run inference
-                var output = predictFunction.call(new FeedItem[]
+                // Start a session
+                using (var session = new Session(graph))
                 {
-                    new FeedItem("input_1", inputTensor) // Adjust "input_1" to match your model's input tensor name
-                });
+                    // Preprocess the image (resize and normalize)
+                    Tensor inputTensor = PreprocessImage(imageBytes);
 
-                // Extract predictions (update output tensor name as needed)
-                var predictions = output["output_0"].ToArray<float>(); // Adjust "output_0" for your model's output tensor name
-                var predictedLabel = Array.IndexOf(predictions, predictions.Max());
-                var confidence = predictions.Max();
+                    // Get the input and output tensor names from the graph
+                    var inputOp = graph.OperationByName("input_1");  // Change "input_1" to the actual input tensor name
+                    var outputOp = graph.OperationByName("output_0");  // Change "output_0" to the actual output tensor name
 
-                return $"Predicted label: {predictedLabel}, Confidence: {confidence}";
+                    // Run inference
+                    var result = session.run(outputOp.outputs[0], new FeedItem(inputOp, inputTensor));
+
+                    // Convert result to an array and find the predicted label
+                    var predictions = result.ToArray<float>();
+                    var predictedLabel = Array.IndexOf(predictions, predictions.Max());
+                    var confidence = predictions.Max();
+
+                    return $"Predicted label: {predictedLabel}, Confidence: {confidence}";
+                }
             }
             catch (Exception ex)
             {
