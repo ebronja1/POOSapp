@@ -19,6 +19,7 @@ namespace ImageProcessingAPI.Controllers
         [HttpPost("upload")]
         public IActionResult UploadImage(IFormFile file)
         {
+            Console.WriteLine("poziva");
             if (file == null || file.Length == 0)
             {
                 return BadRequest("No file uploaded.");

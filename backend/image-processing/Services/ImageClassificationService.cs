@@ -6,7 +6,7 @@ using Tensorflow;
 using Tensorflow.NumPy;
 using static Tensorflow.Binding;
 
-namespace ImageClassifierAPI.Services
+namespace ImageProcessingAPI.Services
 {
     public class ImageClassificationService
     {
